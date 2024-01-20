@@ -1,11 +1,33 @@
 from flask import Blueprint, request, jsonify
 
-from models import Test
+from models import Test, User
 
 bp = Blueprint('admin', __name__)
 
 
-@bp.post('/test')
+@bp.post('/login/')
+def login():
+    try:
+        username = request.json.get('username')
+        password = request.json.get('password')
+        user = User.objects.get(username=username)
+        if user.check_password(password):
+            token = user.set_token()
+            success = True
+            message = 'You are logged in.'
+            data = dict(token=token)
+            status = 200
+        else:
+            raise Exception('Invalid username or password!')
+    except Exception as e:
+        success = False
+        message = str(e)
+        data = dict()
+        status = 500
+    return jsonify(success=success, message=message, data=data), status
+
+
+@bp.post('/test/')
 def test_post():
     try:
         Test(**request.json).save()
@@ -19,7 +41,6 @@ def test_post():
         data = dict()
         status = 500
     return jsonify(success=success, message=message, data=data), status
-
 
 @bp.get('/test/')
 @bp.get('/test/<id>/')
@@ -42,7 +63,6 @@ def test_get(id=None):
         data = dict()
         status = 500
     return jsonify(success=success, message=message, data=data), status
-
 
 @bp.put('/test/<id>/')
 def test_put(id):
