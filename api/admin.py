@@ -1,6 +1,12 @@
-from flask import Blueprint, request, jsonify
+from datetime import datetime
 
-from models import Test, User
+from flask import Blueprint, g, request, jsonify
+
+from models import Article, User
+from mods.auth import auth
+from mods.image import make_thumbnail, optimize
+from mods.slug import make_slug
+
 
 bp = Blueprint('admin', __name__)
 
@@ -27,10 +33,22 @@ def login():
     return jsonify(success=success, message=message, data=data), status
 
 
-@bp.post('/test/')
-def test_post():
+@bp.post('/a/')
+@auth
+def article_post():
     try:
-        Test(**request.json).save()
+        Article(
+            title=request.title,
+            slug=make_slug(request.title),
+            datetime=datetime.now(),
+            author=request.author,
+            summary=request.summary,
+            keywords=request.keywords,
+            tags=request.tags,
+            cover=optimize(request.cover),
+            thumbnail=make_thumbnail(request.cover),
+            text=request.text,
+        ).save()
         success = True
         message = ''
         data = dict()
@@ -42,17 +60,17 @@ def test_post():
         status = 500
     return jsonify(success=success, message=message, data=data), status
 
-@bp.get('/test/')
-@bp.get('/test/<id>/')
-def test_get(id=None):
+@bp.get('/a/')
+@bp.get('/a/<id>/')
+def article_get(id=None):
     try:
         if id==None:
             data = dict(
-                items=[obj.as_dict() for obj in Test.objects],
-                count=Test.objects.count(),
+                items=[obj.as_dict(mode='short') for obj in Article.objects],
+                count=Article.objects.count(),
             )
         else:
-            data = Test.objects.get(id=id).as_dict()
+            data = Article.objects.get(id=id).as_dict(mode='full')
         success = True
         message = ''
         data = data
@@ -64,13 +82,14 @@ def test_get(id=None):
         status = 500
     return jsonify(success=success, message=message, data=data), status
 
-@bp.put('/test/<id>/')
-def test_put(id):
+@bp.put('/a/<id>/')
+@auth
+def article_put(id):
     try:
-        obj = Test.objects.get(id=id)
+        obj = Article.objects.get(id=id)
         obj.update(**request.json)
         success = True
-        message = 'Object has been updated successfully.'
+        message = 'Article has been updated successfully.'
         data = dict()
         status = 200
     except Exception as e:
@@ -80,16 +99,13 @@ def test_put(id):
         status = 500
     return jsonify(success=success, message=message, data=data), status
 
-@bp.delete('/test/<id>/')
-def test_delete(id):
+@bp.delete('/a/<id>/')
+@auth
+def article_delete(id):
     try:
-        token = request.headers['Authorization'][7:]
-        if token != 'qwertyuiop':
-            raise Exception('You are not authorized.')
-
-        Test.objects.get(id=id).delete()
+        Article.objects.get(id=id).delete()
         success = True
-        message = 'Object has been deleted successfully.'
+        message = 'Article has been deleted successfully.'
         data = dict()
         status = 200
     except Exception as e:

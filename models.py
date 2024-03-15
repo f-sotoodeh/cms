@@ -22,7 +22,6 @@ class User(db.Document):
 
     def check_password(self , password):
         return check_password_hash(self.password, password)
-    
 
     def as_dict(self):
         return dict(
@@ -41,3 +40,44 @@ class Test(db.Document):
             test_name=self.test_name,
             test_data=self.test_data,
         )
+
+
+class Article(db.Document):
+    title = db.StringField()
+    slug = db.StringField()
+    datetime = db.DatetimeField()
+    author = db.StringField()
+    summary = db.StringField()
+    keywords = db.ListField(db.StringField())
+    tags = db.ListField(db.StringField())
+    thumbnail = db.StringField()
+    cover = db.StringField()
+    text = db.StringField()
+
+    meta = dict(
+        indexes=['slug', 'datetime']
+    )
+
+    def as_dict(self, mode):
+        if mode == 'short':
+            return dict(
+                id=str(self.id),
+                title=self.title,
+                datetime=self.datetime,
+                author=self.author,
+                summary=self.summary,
+                keywords=self.keywords,
+                thumbnail=self.thumbnail,
+            )
+        elif mode == 'full':
+            return dict(
+                id=str(self.id),
+                title=self.title,
+                datetime=self.datetime,
+                author=self.author,
+                summary=self.summary,
+                keywords=self.keywords,
+                tags=self.tags,
+                cover=self.cover,
+                text=self.text,
+            )
